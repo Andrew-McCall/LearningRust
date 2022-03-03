@@ -5,7 +5,7 @@ use std::time::{SystemTime, Duration};
 use rand::{Rng};
 
 fn main() {
-    let dim:usize = 16;
+    let dim:usize = 32;
     let pdim: f64 = 16.0;
 
     let ssize: f64 = dim as f64 * pdim;
@@ -29,9 +29,9 @@ fn main() {
     let mut window: PistonWindow = WindowSettings::new("Snake", [ssize, ssize]).exit_on_esc(true).build().unwrap();
 
     let mut delta_t: SystemTime = SystemTime::now();
-    let frame_t = Duration::new(0,300000000);
+    let frame_t = Duration::new(0,200000000);
 
-    let mut gameState: usize = 1;
+    let mut game_state: usize = 1;
 
     state = apple(state, dim);
 
@@ -51,10 +51,10 @@ fn main() {
         // Logic Tick
         if delta_t.elapsed().unwrap() > frame_t{
             delta_t = SystemTime::now();
-            if gameState != 2{
+            if game_state != 2{
             
                 if (snake[0] == 0 && direction == 3) || (snake[0] == dim && direction == 1) || (snake[1] == dim && direction == 2)|| (snake[1] == 0 && direction == 0) {
-                    gameState = 2;
+                    game_state = 2;
                 }else{
                     snake[3] = direction.clone();
 
@@ -66,12 +66,12 @@ fn main() {
                             snake[2] += 1;
                             state = apple(state, dim);
                         }else{
-                            gameState = 2;
+                            game_state = 2;
                         }
                         
                     }
     
-                    if gameState == 1{
+                    if game_state == 1{
                         for x in 0..dim{
                             for y in 0..dim{
                                 if state[x][y] != 0{
@@ -97,7 +97,7 @@ fn main() {
             clear([1.0; 4], graphics);
 
             // Bg
-            rectangle([[0.0, 0.4, 0.0, 1.0],[0.0, 0.4, 0.0, 1.0],[0.9, 0.0, 0.0, 1.0]][gameState],
+            rectangle([[0.0, 0.4, 0.0, 1.0],[0.0, 0.4, 0.0, 1.0],[0.9, 0.0, 0.0, 1.0]][game_state],
                 [0.0, 0.0, ssize, ssize],
                 context.transform,
                 graphics);
