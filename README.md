@@ -30,4 +30,5 @@ Classic video game. The snake seeks apples, growing with each and will die/lose 
 - Auto Restart on buttonpress (After death)
 - circle apples
 - speed on size
+- Score / Win Condition
 
