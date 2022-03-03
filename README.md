@@ -1,6 +1,7 @@
 ### Learning Rust
 
 I wanted to learn rust; I'm a massive nerd.
+Here are some of my first projects.
 
 ### Projects
 
