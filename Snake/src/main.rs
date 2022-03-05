@@ -5,7 +5,7 @@ use std::time::{SystemTime, Duration};
 use rand::{Rng};
 
 fn main() {
-    let dim:usize = 32;
+    let dim:usize = 24;
     let pdim: f64 = 16.0;
 
     let ssize: f64 = dim as f64 * pdim;

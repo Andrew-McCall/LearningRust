@@ -24,16 +24,11 @@ pub struct Arrow{
     rotation: f64,
 }
 
-pub struct Decal{
-    texture: usize,
-    postition: [f64; 2],
-    rotation: f64,
-}
-
 pub struct Enemy{
     texture: usize,
     speed: f64,
     position: [f64; 2],
+    rotation: f64,
     health: i32,
     immune: f64,
 }
@@ -56,14 +51,14 @@ impl App {
             Texture::from_path(Path::new("./assets/test.png"), &TextureSettings::new()).expect("Could not loadw test."),
             Texture::from_path(Path::new("./assets/arrow.png"), &TextureSettings::new()).expect("Could not load arrow."),
             Texture::from_path(Path::new("./assets/zombie.png"), &TextureSettings::new()).expect("Could not load zombie."),
-            Texture::from_path(Path::new("./assets/BloodSplat.png.png"), &TextureSettings::new()).expect("Could not load Blood."),
+            Texture::from_path(Path::new("./assets/BloodSplat.png"), &TextureSettings::new()).expect("Could not load Blood."),
             ];
 
         let images:[Image; 4] = [
             Image::new().rect(square(0.0, 0.0, 200.0)),
             Image::new().rect(square(0.0, 0.0, 20.0)),
             Image::new().rect(square(0.0, 0.0, 50.0)),
-            Image::new().rect(square(0.0, 0.0, 200.0))
+            Image::new().rect(square(0.0, 0.0, 40.0))
         ];
 
         return App {
@@ -96,7 +91,7 @@ impl App {
             self.images[0].draw(&self.textures[0], &draw_state, transform, gl);
 
             for enemy in &self.enemies{
-                let transform = context.transform.trans(enemy.position[0],enemy.position[1]).trans(-self.images[enemy.texture].rectangle.unwrap()[2]/2.0,-self.images[enemy.texture].rectangle.unwrap()[3]/2.);
+                let transform = context.transform.trans(enemy.position[0],enemy.position[1]).rot_rad(enemy.rotation).trans(-self.images[enemy.texture].rectangle.unwrap()[2]/2.0,-self.images[enemy.texture].rectangle.unwrap()[3]/2.);
                 self.images[enemy.texture].draw(&self.textures[enemy.texture], &draw_state, transform, gl)
             }
 
@@ -109,26 +104,51 @@ impl App {
     }
 
     fn update(&mut self, args: &UpdateArgs) {
-        
+        let mut rng = rand::thread_rng();
+
+
         for x in 0..self.enemies.len(){
-            self.enemies[x].position[0] += self.enemies[x].speed * args.dt;
+            if self.enemies[x].position[0] < 480.0  && self.enemies[x].health != 0 {
+                self.enemies[x].position[0] += self.enemies[x].speed * args.dt;
+
+            }
         }
+
+
+        self.arrows.retain(|x| &x.position[0] > &-5.0);
 
         for x in 0..self.arrows.len(){
             self.arrows[x].position[0] -= self.arrows[x].speed * args.dt * self.arrows[x].rotation.sin(); 
             self.arrows[x].position[1] += self.arrows[x].speed * args.dt * self.arrows[x].rotation.cos(); 
+
+            for y in 0..self.enemies.len(){
+                if self.enemies[y].health!=0{
+                    let dx = self.enemies[y].position[0] - self.arrows[x].position[0];
+                    let dy = self.enemies[y].position[1] - self.arrows[x].position[1];
+
+                    if dx < 30.0 && dx > -30.0  &&  dy < 30.0 && dy > -30.0{
+                        self.enemies[y].position[1] = 9999999.9;
+
+                        self.enemies[y].health = 0;
+                        self.enemies[y].rotation = rng.gen::<f64>()*3.1;
+                        self.enemies[y].texture = 3;
+                        self.difficulty *= 0.8;
+                    }
+                } 
+            }
         }
 
-        let mut rng = rand::thread_rng();
+        
         self.last_spawn += args.dt * rng.gen::<f64>() * self.difficulty;
         if  self.last_spawn > 100.0{
             self.last_spawn = 0.0;
             self.enemies.push(Enemy{
                 health:10,
                 position: [-50.0, rng.gen::<f64>()*300.0+30.0], 
-                speed: rng.gen::<f64>()*6.0+12.0,
+                speed: rng.gen::<f64>()*25.0+25.0,
                 texture: 2,
                 immune:0.0,
+                rotation:0.0,
             });
         }
 
@@ -137,10 +157,9 @@ impl App {
     fn input(&mut self, args: &ButtonArgs){
         if  Button::Mouse(MouseButton::Left) == args.button{
             if (args.state) == ButtonState::Press{
-                println!("{:#?} at ({}, {})", args.state, self.mouse[0], self.mouse[1]);
                 self.arrows.push(Arrow{
                     position: [480.0, 180.0], 
-                    speed: 100.0,
+                    speed: 150.0,
                     texture: 1,
                     rotation:((480.0-self.mouse[0]).atan2(self.mouse[1]-180.0)), // Width - x | y - Height/2
                 });
@@ -159,7 +178,7 @@ fn main() {
         .build()
         .unwrap();
 
-    let mut app = App::new(opengl, 50.0);
+    let mut app = App::new(opengl, 35.0);
 
     let mut events = Events::new(EventSettings::new());
     while let Some(event) = events.next(&mut window) {
