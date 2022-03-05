@@ -29,8 +29,7 @@ pub struct Enemy{
     speed: f64,
     position: [f64; 2],
     rotation: f64,
-    health: i32,
-    immune: f64,
+    health: i8,
 }
 
 pub struct App {
@@ -42,6 +41,7 @@ pub struct App {
     last_spawn: f64,
     textures: [Texture; 4],
     images: [Image; 4],
+    cooldown: f64,
 }
 
 impl App {
@@ -70,6 +70,7 @@ impl App {
             last_spawn:0.0,
             images:images,
             textures:textures,
+            cooldown:0.0,
         };
 
     }
@@ -78,22 +79,21 @@ impl App {
 
         let draw_state: DrawState = Default::default();
 
-
         self.gl.draw(args.viewport(), |context, gl| {
             clear([0.0,0.4,0.0,1.0], gl);
-
+            
+            for enemy in &self.enemies{
+                let transform = context.transform.trans(enemy.position[0],enemy.position[1]).rot_rad(enemy.rotation).trans(-self.images[enemy.texture].rectangle.unwrap()[2]/2.0,-self.images[enemy.texture].rectangle.unwrap()[3]/2.);
+                self.images[enemy.texture].draw(&self.textures[enemy.texture], &draw_state, transform, gl)
+            }
+            
             let transform = context
                 .transform
                 .trans(480.0, 180.0)
                 .rot_rad((480.0-self.mouse[0]).atan2(self.mouse[1]-180.0)) // Width - x | y - Height/2
                 .trans(-100.0, -100.0);
-            
-            self.images[0].draw(&self.textures[0], &draw_state, transform, gl);
 
-            for enemy in &self.enemies{
-                let transform = context.transform.trans(enemy.position[0],enemy.position[1]).rot_rad(enemy.rotation).trans(-self.images[enemy.texture].rectangle.unwrap()[2]/2.0,-self.images[enemy.texture].rectangle.unwrap()[3]/2.);
-                self.images[enemy.texture].draw(&self.textures[enemy.texture], &draw_state, transform, gl)
-            }
+            self.images[0].draw(&self.textures[0], &draw_state, transform, gl);
 
             for arrow in &self.arrows{
                 let transform = context.transform.trans(arrow.position[0],arrow.position[1]).rot_rad(arrow.rotation).trans(-self.images[arrow.texture].rectangle.unwrap()[2]/2.0,-self.images[arrow.texture].rectangle.unwrap()[3]/2.);
@@ -106,16 +106,11 @@ impl App {
     fn update(&mut self, args: &UpdateArgs) {
         let mut rng = rand::thread_rng();
 
-
         for x in 0..self.enemies.len(){
             if self.enemies[x].position[0] < 480.0  && self.enemies[x].health != 0 {
                 self.enemies[x].position[0] += self.enemies[x].speed * args.dt;
-
             }
         }
-
-
-        self.arrows.retain(|x| &x.position[0] > &-5.0);
 
         for x in 0..self.arrows.len(){
             self.arrows[x].position[0] -= self.arrows[x].speed * args.dt * self.arrows[x].rotation.sin(); 
@@ -127,16 +122,19 @@ impl App {
                     let dy = self.enemies[y].position[1] - self.arrows[x].position[1];
 
                     if dx < 30.0 && dx > -30.0  &&  dy < 30.0 && dy > -30.0{
-                        self.enemies[y].position[1] = 9999999.9;
+                        self.arrows[x].position[0] = -1000.0;
 
                         self.enemies[y].health = 0;
-                        self.enemies[y].rotation = rng.gen::<f64>()*3.1;
+                        self.enemies[y].rotation = rng.gen::<f64>()*6.3;
                         self.enemies[y].texture = 3;
-                        self.difficulty *= 0.8;
+                        self.difficulty += 10.0;
+
                     }
                 } 
             }
         }
+
+        self.arrows.retain(|x| &x.position[0] > &-5.0);
 
         
         self.last_spawn += args.dt * rng.gen::<f64>() * self.difficulty;
@@ -147,9 +145,14 @@ impl App {
                 position: [-50.0, rng.gen::<f64>()*300.0+30.0], 
                 speed: rng.gen::<f64>()*25.0+25.0,
                 texture: 2,
-                immune:0.0,
                 rotation:0.0,
             });
+        }
+
+        self.cooldown -= args.dt*2.0;
+
+        if self.cooldown < 0.0{
+            self.cooldown = 0.0;
         }
 
     }
@@ -157,12 +160,15 @@ impl App {
     fn input(&mut self, args: &ButtonArgs){
         if  Button::Mouse(MouseButton::Left) == args.button{
             if (args.state) == ButtonState::Press{
-                self.arrows.push(Arrow{
-                    position: [480.0, 180.0], 
-                    speed: 150.0,
-                    texture: 1,
-                    rotation:((480.0-self.mouse[0]).atan2(self.mouse[1]-180.0)), // Width - x | y - Height/2
-                });
+                if self.cooldown == 0.0{
+                    self.arrows.push(Arrow{
+                        position: [480.0, 180.0], 
+                        speed: 150.0,
+                        texture: 1,
+                        rotation:((480.0-self.mouse[0]).atan2(self.mouse[1]-180.0)), // Width - x | y - Height/2
+                    });
+                    self.cooldown = 0.8;
+                }
             }
         } 
     }
@@ -178,7 +184,7 @@ fn main() {
         .build()
         .unwrap();
 
-    let mut app = App::new(opengl, 35.0);
+    let mut app = App::new(opengl, 50.0);
 
     let mut events = Events::new(EventSettings::new());
     while let Some(event) = events.next(&mut window) {
