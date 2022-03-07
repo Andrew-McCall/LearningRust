@@ -39,7 +39,9 @@ pub struct Decal{
 
 pub struct App {
     gl: GlGraphics,
-    mouse: [f64; 2],
+    mouse_pos: [f64; 2],
+    mouse_down: bool,
+    rotation: f64,
     enemies: Vec<Enemy>,
     arrows: Vec<Arrow>,
     decals: Vec<Decal>,
@@ -48,6 +50,7 @@ pub struct App {
     textures: [Texture; 4],
     images: [Image; 4],
     cooldown: f64,
+    gamestate: i8,
 }
 
 impl App {
@@ -69,7 +72,9 @@ impl App {
 
         return App {
             gl:GlGraphics::new(opengl),
-            mouse: [0.0, 0.0],
+            mouse_pos: [0.0, 0.0],
+            mouse_down: false,
+            rotation:0.0,
             enemies: Vec::new(),
             arrows: Vec::new(),
             decals: Vec::new(),
@@ -78,12 +83,12 @@ impl App {
             images:images,
             textures:textures,
             cooldown:0.0,
+            gamestate: 0,
         };
 
     }
 
     fn render(&mut self, args: &RenderArgs) {
-
 
         let draw_state: DrawState = Default::default();
 
@@ -98,7 +103,7 @@ impl App {
             let transform = context
                 .transform
                 .trans(480.0, 180.0)
-                .rot_rad((480.0-self.mouse[0]).atan2(self.mouse[1]-180.0)) // Width - x | y - Height/2
+                .rot_rad(self.rotation) // Width - x | y - Height/2
                 .trans(-100.0, -100.0);
 
             self.images[0].draw(&self.textures[0], &draw_state, transform, gl);
@@ -119,14 +124,13 @@ impl App {
     }
 
     fn update(&mut self, args: &UpdateArgs) {
-        let mut rng = rand::thread_rng();
-
-        for x in 0..self.enemies.len(){
-            if self.enemies[x].position[0] < 480.0  && self.enemies[x].health != 0 {
-                self.enemies[x].position[0] += self.enemies[x].speed * args.dt;
-            }
+        if self.gamestate != 1 {
+            return;
         }
 
+        let mut rng = rand::thread_rng();
+
+        // Arrow Logic
         for x in 0..self.arrows.len(){
             self.arrows[x].position[0] -= self.arrows[x].speed * args.dt * self.arrows[x].rotation.sin(); 
             self.arrows[x].position[1] += self.arrows[x].speed * args.dt * self.arrows[x].rotation.cos(); 
@@ -156,39 +160,67 @@ impl App {
         // Dead Clean up
         self.arrows.retain(|x| &x.position[0] > &-5.0);
         self.enemies.retain(|x| &x.health > &0);
-        
-        self.last_spawn += args.dt * rng.gen::<f64>() * self.difficulty;
-        if  self.last_spawn > 100.0{
-            self.last_spawn = 0.0;
-            self.enemies.push(Enemy{
-                health:10,
-                position: [-50.0, rng.gen::<f64>()*300.0+30.0], 
-                speed: rng.gen::<f64>()*25.0+25.0,
-                texture: 2,
-            });
+
+        // Enemy Logic
+        for x in 0..self.enemies.len(){
+            if self.enemies[x].position[0] < 480.0{
+                self.enemies[x].position[0] += self.enemies[x].speed * args.dt;
+            }else{
+                self.gamestate = -1;
+            }
         }
 
+        // Spawner
+        self.last_spawn += args.dt * rng.gen::<f64>() * self.difficulty;
+        if  self.last_spawn > 100.0{
+
+            while self.last_spawn > 100.0{
+                self.enemies.push(Enemy{
+                    health:10,
+                    position: [-50.0, rng.gen::<f64>()*300.0+30.0], 
+                    speed: rng.gen::<f64>()*25.0+25.0,
+                    texture: 2,
+                });
+                self.last_spawn -= 150.0;
+            }
+
+            self.last_spawn = 0.0;
+            
+        }
+
+        // Crossbow Cooldown
         self.cooldown -= args.dt*2.0;
 
         if self.cooldown < 0.0{
             self.cooldown = 0.0;
         }
 
+        // Crossbow Firing
+        if self.cooldown == 0.0 && self.gamestate==1 && self.mouse_down{
+            self.arrows.push(Arrow{
+                position: [480.0, 180.0], 
+                speed: 150.0,
+                texture: 1,
+                rotation:(self.rotation), // Width - x | y - Height/2
+            });
+            self.cooldown = 0.8;
+        }
+
+        // Crossbow Rotation
+        let real_rotation = (480.0-self.mouse_pos[0]).atan2(self.mouse_pos[1]-180.0);
+        if (self.rotation - real_rotation).abs()> args.dt * 1.5{
+            if real_rotation > self.rotation{
+                self.rotation += args.dt * 1.5;
+            }else{
+                self.rotation -= args.dt * 1.5;
+            }
+        }
+        
     }
 
     fn input(&mut self, args: &ButtonArgs){
         if  Button::Mouse(MouseButton::Left) == args.button{
-            if (args.state) == ButtonState::Press{
-                if self.cooldown == 0.0{
-                    self.arrows.push(Arrow{
-                        position: [480.0, 180.0], 
-                        speed: 150.0,
-                        texture: 1,
-                        rotation:((480.0-self.mouse[0]).atan2(self.mouse[1]-180.0)), // Width - x | y - Height/2
-                    });
-                    self.cooldown = 0.8;
-                }
-            }
+            self.mouse_down = (args.state) == ButtonState::Press;
         } 
     }
 
@@ -207,6 +239,8 @@ fn main() {
         .unwrap();
 
     let mut app = App::new(opengl, 50.0);
+    
+    app.gamestate = 1;
 
     let mut events = Events::new(EventSettings::new());
     while let Some(event) = events.next(&mut window) {
@@ -224,8 +258,7 @@ fn main() {
         }
 
         event.mouse_cursor(|pos| {
-            app.mouse = pos;
-            
+            app.mouse_pos = pos;
         });
 
     }
