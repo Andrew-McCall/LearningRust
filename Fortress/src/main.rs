@@ -28,8 +28,13 @@ pub struct Enemy{
     texture: usize,
     speed: f64,
     position: [f64; 2],
-    rotation: f64,
     health: i8,
+}
+
+pub struct Decal{
+    texture: usize,
+    position: [f64; 2],
+    rotation: f64,
 }
 
 pub struct App {
@@ -37,6 +42,7 @@ pub struct App {
     mouse: [f64; 2],
     enemies: Vec<Enemy>,
     arrows: Vec<Arrow>,
+    decals: Vec<Decal>,
     difficulty: f64,
     last_spawn: f64,
     textures: [Texture; 4],
@@ -66,6 +72,7 @@ impl App {
             mouse: [0.0, 0.0],
             enemies: Vec::new(),
             arrows: Vec::new(),
+            decals: Vec::new(),
             difficulty: difficulty,
             last_spawn:0.0,
             images:images,
@@ -77,14 +84,15 @@ impl App {
 
     fn render(&mut self, args: &RenderArgs) {
 
+
         let draw_state: DrawState = Default::default();
 
         self.gl.draw(args.viewport(), |context, gl| {
             clear([0.0,0.4,0.0,1.0], gl);
             
-            for enemy in &self.enemies{
-                let transform = context.transform.trans(enemy.position[0],enemy.position[1]).rot_rad(enemy.rotation).trans(-self.images[enemy.texture].rectangle.unwrap()[2]/2.0,-self.images[enemy.texture].rectangle.unwrap()[3]/2.);
-                self.images[enemy.texture].draw(&self.textures[enemy.texture], &draw_state, transform, gl)
+            for decal in &self.decals{
+                let transform = context.transform.trans(decal.position[0],decal.position[1]).rot_rad(decal.rotation).trans(-self.images[decal.texture].rectangle.unwrap()[2]/2.0,-self.images[decal.texture].rectangle.unwrap()[3]/2.);
+                self.images[decal.texture].draw(&self.textures[decal.texture], &draw_state, transform, gl)
             }
             
             let transform = context
@@ -94,11 +102,18 @@ impl App {
                 .trans(-100.0, -100.0);
 
             self.images[0].draw(&self.textures[0], &draw_state, transform, gl);
-
+            
             for arrow in &self.arrows{
                 let transform = context.transform.trans(arrow.position[0],arrow.position[1]).rot_rad(arrow.rotation).trans(-self.images[arrow.texture].rectangle.unwrap()[2]/2.0,-self.images[arrow.texture].rectangle.unwrap()[3]/2.);
                 self.images[arrow.texture].draw(&self.textures[arrow.texture], &draw_state, transform, gl)
             }
+
+            for enemy in &self.enemies{
+                let transform = context.transform.trans(enemy.position[0],enemy.position[1]).trans(-self.images[enemy.texture].rectangle.unwrap()[2]/2.0,-self.images[enemy.texture].rectangle.unwrap()[3]/2.);
+                self.images[enemy.texture].draw(&self.textures[enemy.texture], &draw_state, transform, gl)
+            }
+
+            
 
         });
     }
@@ -121,21 +136,26 @@ impl App {
                     let dx = self.enemies[y].position[0] - self.arrows[x].position[0];
                     let dy = self.enemies[y].position[1] - self.arrows[x].position[1];
 
-                    if dx < 30.0 && dx > -30.0  &&  dy < 30.0 && dy > -30.0{
-                        self.arrows[x].position[0] = -1000.0;
-
+                    if dx*dx + dy*dy < 400.0{
+                        self.decals.push(Decal{
+                            texture: 3,
+                            position: self.enemies[y].position,
+                            rotation: rng.gen::<f64>()*6.4,
+                        });
+                        
                         self.enemies[y].health = 0;
-                        self.enemies[y].rotation = rng.gen::<f64>()*6.3;
-                        self.enemies[y].texture = 3;
+
                         self.difficulty += 10.0;
 
+                        self.arrows[x].position[0] = -1000.0;
                     }
                 } 
             }
         }
 
+        // Dead Clean up
         self.arrows.retain(|x| &x.position[0] > &-5.0);
-
+        self.enemies.retain(|x| &x.health > &0);
         
         self.last_spawn += args.dt * rng.gen::<f64>() * self.difficulty;
         if  self.last_spawn > 100.0{
@@ -145,7 +165,6 @@ impl App {
                 position: [-50.0, rng.gen::<f64>()*300.0+30.0], 
                 speed: rng.gen::<f64>()*25.0+25.0,
                 texture: 2,
-                rotation:0.0,
             });
         }
 
@@ -181,6 +200,9 @@ fn main() {
     let mut window: Window = WindowSettings::new("Fortress", [480, 360])
         .graphics_api(opengl)
         .exit_on_esc(true)
+
+        .fullscreen(false)
+
         .build()
         .unwrap();
 
