@@ -51,20 +51,21 @@ pub struct App {
     images: [Image; 4],
     cooldown: f64,
     gamestate: i8,
+    health: f64,
 }
 
 impl App {
     pub fn new(opengl:glutin_window::OpenGL, difficulty: f64) -> Self {
         
         let textures:[Texture; 4] = [
-            Texture::from_path(Path::new("./assets/test.png"), &TextureSettings::new()).expect("Could not loadw test."),
+            Texture::from_path(Path::new("./assets/Crossbow.png"), &TextureSettings::new()).expect("Could not load crossbow."),
             Texture::from_path(Path::new("./assets/arrow.png"), &TextureSettings::new()).expect("Could not load arrow."),
             Texture::from_path(Path::new("./assets/zombie.png"), &TextureSettings::new()).expect("Could not load zombie."),
             Texture::from_path(Path::new("./assets/BloodSplat.png"), &TextureSettings::new()).expect("Could not load Blood."),
             ];
 
         let images:[Image; 4] = [
-            Image::new().rect(square(0.0, 0.0, 200.0)),
+            Image::new().rect(square(0.0, 0.0, 100.0)),
             Image::new().rect(square(0.0, 0.0, 20.0)),
             Image::new().rect(square(0.0, 0.0, 50.0)),
             Image::new().rect(square(0.0, 0.0, 40.0))
@@ -74,7 +75,7 @@ impl App {
             gl:GlGraphics::new(opengl),
             mouse_pos: [0.0, 0.0],
             mouse_down: false,
-            rotation:0.0,
+            rotation:1.0,
             enemies: Vec::new(),
             arrows: Vec::new(),
             decals: Vec::new(),
@@ -84,6 +85,7 @@ impl App {
             textures:textures,
             cooldown:0.0,
             gamestate: 0,
+            health: 100.0,
         };
 
     }
@@ -100,13 +102,8 @@ impl App {
                 self.images[decal.texture].draw(&self.textures[decal.texture], &draw_state, transform, gl)
             }
             
-            let transform = context
-                .transform
-                .trans(480.0, 180.0)
-                .rot_rad(self.rotation) // Width - x | y - Height/2
-                .trans(-100.0, -100.0);
-
-            self.images[0].draw(&self.textures[0], &draw_state, transform, gl);
+            // Crossbow
+            self.images[0].draw(&self.textures[0], &draw_state, context.transform.trans(480.0, 180.0).rot_rad(self.rotation).trans(-50.0, -50.0), gl);
             
             for arrow in &self.arrows{
                 let transform = context.transform.trans(arrow.position[0],arrow.position[1]).rot_rad(arrow.rotation).trans(-self.images[arrow.texture].rectangle.unwrap()[2]/2.0,-self.images[arrow.texture].rectangle.unwrap()[3]/2.);
@@ -117,8 +114,6 @@ impl App {
                 let transform = context.transform.trans(enemy.position[0],enemy.position[1]).trans(-self.images[enemy.texture].rectangle.unwrap()[2]/2.0,-self.images[enemy.texture].rectangle.unwrap()[3]/2.);
                 self.images[enemy.texture].draw(&self.textures[enemy.texture], &draw_state, transform, gl)
             }
-
-            
 
         });
     }
@@ -166,10 +161,14 @@ impl App {
             if self.enemies[x].position[0] < 480.0{
                 self.enemies[x].position[0] += self.enemies[x].speed * args.dt;
             }else{
-                self.gamestate = -1;
+                self.health -= 1.0 * args.dt;
+                println!("{}",self.health);
             }
         }
 
+        if self.health <= 0.0{
+            self.gamestate = -1;
+        };
         // Spawner
         self.last_spawn += args.dt * rng.gen::<f64>() * self.difficulty;
         if  self.last_spawn > 100.0{
@@ -203,7 +202,7 @@ impl App {
                 texture: 1,
                 rotation:(self.rotation), // Width - x | y - Height/2
             });
-            self.cooldown = 0.8;
+            self.cooldown = 1.0;
         }
 
         // Crossbow Rotation
