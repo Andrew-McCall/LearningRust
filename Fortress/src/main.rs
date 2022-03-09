@@ -94,16 +94,19 @@ impl App {
 
         let draw_state: DrawState = Default::default();
 
+       
+
         self.gl.draw(args.viewport(), |context, gl| {
             clear([0.0,0.4,0.0,1.0], gl);
             
+            // Entities //
             for decal in &self.decals{
                 let transform = context.transform.trans(decal.position[0],decal.position[1]).rot_rad(decal.rotation).trans(-self.images[decal.texture].rectangle.unwrap()[2]/2.0,-self.images[decal.texture].rectangle.unwrap()[3]/2.);
                 self.images[decal.texture].draw(&self.textures[decal.texture], &draw_state, transform, gl)
             }
             
-            // Crossbow
-            self.images[0].draw(&self.textures[0], &draw_state, context.transform.trans(480.0, 180.0).rot_rad(self.rotation).trans(-50.0, -50.0), gl);
+            // (Crossbow)
+            self.images[0].draw(&self.textures[0], &draw_state, context.transform.trans(480.0, 205.0).rot_rad(self.rotation).trans(-50.0, -50.0), gl);
             
             for arrow in &self.arrows{
                 let transform = context.transform.trans(arrow.position[0],arrow.position[1]).rot_rad(arrow.rotation).trans(-self.images[arrow.texture].rectangle.unwrap()[2]/2.0,-self.images[arrow.texture].rectangle.unwrap()[3]/2.);
@@ -114,6 +117,16 @@ impl App {
                 let transform = context.transform.trans(enemy.position[0],enemy.position[1]).trans(-self.images[enemy.texture].rectangle.unwrap()[2]/2.0,-self.images[enemy.texture].rectangle.unwrap()[3]/2.);
                 self.images[enemy.texture].draw(&self.textures[enemy.texture], &draw_state, transform, gl)
             }
+
+            // // GUI //
+            let hud = rectangle::rectangle_by_corners(0.0, 0.0, 480.0, 50.0);
+            rectangle([0.25, 0.27, 0.25, 1.0], hud, context.transform, gl);
+
+            let health_back = rectangle::rectangle_by_corners(0.0, 0.0, 300.0, 30.0);
+            rectangle([0.6, 0.0, 0.0, 1.0], health_back, context.transform.trans(10.0, 10.0), gl);
+
+            let health = rectangle::rectangle_by_corners(0.0, 0.0, 3.0*self.health, 30.0);
+            rectangle([0.9, 0.0, 0.0, 1.0], health, context.transform.trans(10.0, 10.0), gl);
 
         });
     }
@@ -162,13 +175,14 @@ impl App {
                 self.enemies[x].position[0] += self.enemies[x].speed * args.dt;
             }else{
                 self.health -= 1.0 * args.dt;
-                println!("{}",self.health);
             }
         }
 
         if self.health <= 0.0{
             self.gamestate = -1;
+            self.health = 0.0;
         };
+        
         // Spawner
         self.last_spawn += args.dt * rng.gen::<f64>() * self.difficulty;
         if  self.last_spawn > 100.0{
@@ -176,7 +190,7 @@ impl App {
             while self.last_spawn > 100.0{
                 self.enemies.push(Enemy{
                     health:10,
-                    position: [-50.0, rng.gen::<f64>()*300.0+30.0], 
+                    position: [-50.0, rng.gen::<f64>()*270.0+60.0], 
                     speed: rng.gen::<f64>()*25.0+25.0,
                     texture: 2,
                 });
@@ -197,7 +211,7 @@ impl App {
         // Crossbow Firing
         if self.cooldown == 0.0 && self.gamestate==1 && self.mouse_down{
             self.arrows.push(Arrow{
-                position: [480.0, 180.0], 
+                position: [480.0, 205.0], 
                 speed: 150.0,
                 texture: 1,
                 rotation:(self.rotation), // Width - x | y - Height/2
@@ -206,7 +220,11 @@ impl App {
         }
 
         // Crossbow Rotation
-        let real_rotation = (480.0-self.mouse_pos[0]).atan2(self.mouse_pos[1]-180.0);
+        if self.mouse_pos[0] > 480.0{
+            self.mouse_pos[0] = 480.0;
+        }
+
+        let real_rotation = (480.0-self.mouse_pos[0]).atan2(self.mouse_pos[1]-205.0);
         if (self.rotation - real_rotation).abs()> args.dt * 1.5{
             if real_rotation > self.rotation{
                 self.rotation += args.dt * 1.5;
