@@ -85,10 +85,9 @@ fn main() {
                         }
                         
                         state[snake[0]][snake[1]] = 1;
+                        
                     }
                 }
-
-                
             }
         }
 
@@ -106,15 +105,18 @@ fn main() {
             for x in 0..dim{
                 for y in 0..dim{
                     if state[x][y] == 9999{
-                        rectangle([1.0, 0.0, 0.0, 1.0],
+                        ellipse(
+                            [1.0, 0.0, 0.0, 1.0],
                             [pdim * x as f64, pdim * y as f64, pdim, pdim],
                             context.transform,
-                            graphics);
+                            graphics,
+                        );
                     }else if state[x][y] == 1 {
                         rectangle([1.0, 1.0, 0.0, 1.0],
                             [pdim * x as f64, pdim * y as f64, pdim, pdim],
                             context.transform,
                             graphics);
+                            
                     }else if state[x][y] != 0 {
                         rectangle([0.5, 0.7, 0.0, 1.0],
                             [pdim * x as f64, pdim * y as f64, pdim, pdim],
@@ -128,7 +130,7 @@ fn main() {
         });
     }          
 
-    
+    main();
 
 }
 
