@@ -28,7 +28,11 @@ Classic video game. The snake seeks apples, growing with each and will die/lose 
 
 ### Future Improvements
 - Auto Restart on buttonpress (After death)
-- circle apples
+- ~~circle apples (Done)~~ 
 - speed on size
 - Score / Win Condition
 
+## Fortress (Beta)
+### Description
+Still a work in progress. A tower defence game, Enemies spawn walking left to right at various speeds. Shoot them to not let them reach and damage you. 
+Based on pistion using opengl for graphics. Included Text and image rendering and mouse and keyboard inputs.
