@@ -16,28 +16,34 @@ use graphics::{DrawState, Image};
 
 use rand::{Rng};
 
-// Could make rot part of pos
-pub struct Arrow{
+struct HudButton{
+    texture: Texture,
+    image: Image,
+    position: [f64; 2],
+    id: i8,
+}
+
+struct Arrow{
     texture: usize,
     speed: f64,
     position: [f64; 2],
     rotation: f64,
 }
 
-pub struct Enemy{
+struct Enemy{
     texture: usize,
     speed: f64,
     position: [f64; 2],
     health: i8,
 }
 
-pub struct Decal{
+struct Decal{
     texture: usize,
     position: [f64; 2],
     rotation: f64,
 }
 
-pub struct App {
+struct App {
     gl: GlGraphics,
     mouse_pos: [f64; 2],
     mouse_down: bool,
@@ -49,6 +55,7 @@ pub struct App {
     last_spawn: f64,
     textures: [Texture; 4],
     images: [Image; 4],
+    huds: [HudButton; 2],
 
     gamestate: i8,
     health: f64,
@@ -76,6 +83,21 @@ impl App {
             Image::new().rect(square(0.0, 0.0, 40.0))
         ];
 
+        let hud:[HudButton; 2] = [
+            HudButton{
+                image: Image::new().rect(square(0.0, 0.0, 40.0)),
+                texture:Texture::from_path(Path::new("./assets/Shop.png"), &TextureSettings::new()).expect("Could not load Shop."),
+                position:[395.0, 5.0],
+                id: 0,
+            },
+            HudButton{
+                image: Image::new().rect(square(0.0, 0.0, 50.0)),
+                texture:Texture::from_path(Path::new("./assets/Pause.png"), &TextureSettings::new()).expect("Could not load Shop."),
+                position:[430.0, 2.0],
+                id: 1,
+            }
+        ];
+
         return App {
             gl:GlGraphics::new(opengl),
             mouse_pos: [0.0, 0.0],
@@ -84,6 +106,7 @@ impl App {
             enemies: Vec::new(),
             arrows: Vec::new(),
             decals: Vec::new(),
+            huds: hud, 
             difficulty: difficulty,
             last_spawn:0.0,
             images:images,
@@ -131,21 +154,24 @@ impl App {
             rectangle([0.25, 0.27, 0.25, 1.0], hud, context.transform, gl);
 
             let health_back = rectangle::rectangle_by_corners(0.0, 0.0, 300.0, 30.0);
-            rectangle([0.6, 0.0, 0.0, 1.0], health_back, context.transform.trans(10.0, 10.0), gl);
+            rectangle([0.6, 0.0, 0.0, 1.0], health_back, context.transform.trans(7.50, 10.0), gl);
             let health = rectangle::rectangle_by_corners(0.0, 0.0, 3.0*self.health, 30.0);
-            rectangle([0.9, 0.0, 0.0, 1.0], health, context.transform.trans(10.0, 10.0), gl);
+            rectangle([0.9, 0.0, 0.0, 1.0], health, context.transform.trans(7.50, 10.0), gl);
 
+            for hbutton in &self.huds{
+                hbutton.image.draw(&hbutton.texture, &draw_state, context.transform.trans(hbutton.position[0], hbutton.position[1]), gl)
+            }
             
             text.draw(&("Score: ".to_string()+&self.score.to_string()),
             &mut glyph_cache,
             &Default::default(),
-            context.transform.trans(320.0,20.0),
+            context.transform.trans(315.0,20.0),
             gl).unwrap();
 
             text.draw(&("Gold: ".to_string()+&self.gold.to_string()),
             &mut glyph_cache,
             &Default::default(),
-            context.transform.trans(320.0,40.0),
+            context.transform.trans(315.0,40.0),
             gl).unwrap();
 
         });
@@ -232,16 +258,21 @@ impl App {
         }
 
         // Crossbow Firing
-        if self.cooldown == 0.0 && self.gamestate==1 && self.mouse_down{
-            self.arrows.push(Arrow{
-                position: [480.0, 205.0], 
-                speed: 150.0,
-                texture: 1,
-                rotation:(self.rotation), // Width - x | y - Height/2
-            });
-            self.cooldown = 1.0;
+        if  self.mouse_down{
+            if self.mouse_pos[1]>50.0{
+                if self.cooldown == 0.0 && self.gamestate==1{
+                    self.arrows.push(Arrow{
+                        position: [480.0, 205.0], 
+                        speed: 150.0,
+                        texture: 1,
+                        rotation:(self.rotation), // Width - x | y - Height/2
+                    });
+                    self.cooldown = 1.0;
+                }  
+            }else{
+            }
         }
-
+        
         // Crossbow Rotation
         if self.mouse_pos[0] > 480.0{
             self.mouse_pos[0] = 480.0;
@@ -261,6 +292,13 @@ impl App {
     fn input(&mut self, args: &ButtonArgs){
         if  Button::Mouse(MouseButton::Left) == args.button{
             self.mouse_down = (args.state) == ButtonState::Press;
+            if !self.mouse_down{
+                for hbutton in &self.huds{
+                    if self.mouse_pos[0]>hbutton.position[0] && self.mouse_pos[1]>hbutton.position[1] && self.mouse_pos[0]<hbutton.position[0]+hbutton.image.rectangle.unwrap()[2] && self.mouse_pos[1]<hbutton.position[1]+hbutton.image.rectangle.unwrap()[3]{
+                        self.gamestate = self.gamestate*-1;
+                    }
+                }
+            }
         } 
     }
 
