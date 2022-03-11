@@ -5,7 +5,7 @@ use std::time::{SystemTime, Duration};
 use rand::{Rng};
 
 fn main() {
-    let dim:usize = 32;
+    let dim:usize = 24;
     let pdim: f64 = 16.0;
 
     let ssize: f64 = dim as f64 * pdim;
@@ -36,7 +36,7 @@ fn main() {
     state = apple(state, dim);
 
     while let Some(event) = window.next() {
-        
+
         if let Some(button) = event.press_args() {
             if  Button::Keyboard(Key::Up) == button && snake[3] != 2{
                 direction = 0
@@ -47,6 +47,9 @@ fn main() {
             }  else if  Button::Keyboard(Key::Left) == button && snake[3] != 1{
                 direction = 3
             } 
+            if game_state == 2{
+                break;
+            }
         }
         // Logic Tick
         if delta_t.elapsed().unwrap() > frame_t{
