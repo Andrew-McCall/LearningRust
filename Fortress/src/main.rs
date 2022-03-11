@@ -4,7 +4,7 @@ extern crate opengl_graphics;
 extern crate piston;
 
 use glutin_window::GlutinWindow as Window;
-use opengl_graphics::{GlGraphics, OpenGL, TextureSettings, Texture};
+use opengl_graphics::{GlGraphics, OpenGL, TextureSettings, Texture, GlyphCache};
 use piston::event_loop::{EventSettings, Events};
 use piston::input::{RenderArgs, RenderEvent, UpdateArgs, UpdateEvent, Button, ButtonArgs, ButtonEvent, MouseButton, ButtonState, MouseCursorEvent};
 use piston::window::WindowSettings;
@@ -41,7 +41,7 @@ pub struct App {
     gl: GlGraphics,
     mouse_pos: [f64; 2],
     mouse_down: bool,
-    rotation: f64,
+    
     enemies: Vec<Enemy>,
     arrows: Vec<Arrow>,
     decals: Vec<Decal>,
@@ -49,9 +49,14 @@ pub struct App {
     last_spawn: f64,
     textures: [Texture; 4],
     images: [Image; 4],
-    cooldown: f64,
+
     gamestate: i8,
     health: f64,
+
+    rotation: f64,
+    cooldown: f64,
+    gold: i32,
+    score: i32,
 }
 
 impl App {
@@ -86,6 +91,8 @@ impl App {
             cooldown:0.0,
             gamestate: 0,
             health: 100.0,
+            gold:0,
+            score:0,
         };
 
     }
@@ -93,8 +100,9 @@ impl App {
     fn render(&mut self, args: &RenderArgs) {
 
         let draw_state: DrawState = Default::default();
+        let mut glyph_cache = GlyphCache::new("assets/FiraSans-Regular.ttf", (), TextureSettings::new()).unwrap();
+        let text = text::Text::new_color([1.0, 1.0, 0.4, 1.0], 18);
 
-       
 
         self.gl.draw(args.viewport(), |context, gl| {
             clear([0.0,0.4,0.0,1.0], gl);
@@ -118,15 +126,27 @@ impl App {
                 self.images[enemy.texture].draw(&self.textures[enemy.texture], &draw_state, transform, gl)
             }
 
-            // // GUI //
+            // GUI //
             let hud = rectangle::rectangle_by_corners(0.0, 0.0, 480.0, 50.0);
             rectangle([0.25, 0.27, 0.25, 1.0], hud, context.transform, gl);
 
             let health_back = rectangle::rectangle_by_corners(0.0, 0.0, 300.0, 30.0);
             rectangle([0.6, 0.0, 0.0, 1.0], health_back, context.transform.trans(10.0, 10.0), gl);
-
             let health = rectangle::rectangle_by_corners(0.0, 0.0, 3.0*self.health, 30.0);
             rectangle([0.9, 0.0, 0.0, 1.0], health, context.transform.trans(10.0, 10.0), gl);
+
+            
+            text.draw(&("Score: ".to_string()+&self.score.to_string()),
+            &mut glyph_cache,
+            &Default::default(),
+            context.transform.trans(320.0,20.0),
+            gl).unwrap();
+
+            text.draw(&("Gold: ".to_string()+&self.gold.to_string()),
+            &mut glyph_cache,
+            &Default::default(),
+            context.transform.trans(320.0,40.0),
+            gl).unwrap();
 
         });
     }
@@ -155,6 +175,9 @@ impl App {
                             rotation: rng.gen::<f64>()*6.4,
                         });
                         
+                        self.gold += (rng.gen::<f32>()*5.0).trunc() as i32;
+                        self.score += 10;
+
                         self.enemies[y].health = 0;
 
                         self.difficulty += 10.0;
@@ -182,7 +205,7 @@ impl App {
             self.gamestate = -1;
             self.health = 0.0;
         };
-        
+
         // Spawner
         self.last_spawn += args.dt * rng.gen::<f64>() * self.difficulty;
         if  self.last_spawn > 100.0{
