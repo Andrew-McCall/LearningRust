@@ -103,7 +103,7 @@ impl App {
             gl:GlGraphics::new(opengl),
             mouse_pos: [0.0, 0.0],
             mouse_down: false,
-            rotation:1.0,
+            rotation:1.5708,
             enemies: Vec::new(),
             arrows: Vec::new(),
             decals: Vec::new(),
@@ -126,8 +126,17 @@ impl App {
 
         let draw_state: DrawState = Default::default();
         let mut glyph_cache = GlyphCache::new("assets/FiraSans-Regular.ttf", (), TextureSettings::new()).unwrap();
-        let text = text::Text::new_color([1.0, 1.0, 0.4, 1.0], 18);
-        let text_announce = text::Text::new_color([1.0, 1.0, 1.0, 1.0], 48);
+        let text_gold = text::Text::new_color([1.0, 1.0, 0.4, 1.0], 18);
+        let text_score = text::Text::new_color([1.0, 1.0, 0.4, 1.0], 16);
+
+        let colo_r;
+        if self.gamestate == -1 {
+            colo_r = [0.6, 0.0, 0.0, 1.0];
+        }else{
+            colo_r = [1.0, 1.0, 1.0, 1.0];
+        }
+        
+        let text_announce = text::Text::new_color(colo_r, 48);
 
         self.gl.draw(args.viewport(), |context, gl| {
             clear([0.0,0.4,0.0,1.0], gl);
@@ -164,16 +173,16 @@ impl App {
                 hbutton.image.draw(&hbutton.texture, &draw_state, context.transform.trans(hbutton.position[0], hbutton.position[1]), gl)
             }
             
-            text.draw(&("Score: ".to_string()+&self.score.to_string()),
+            text_score.draw(&("Score: ".to_string()+&self.score.to_string()),
             &mut glyph_cache,
             &Default::default(),
-            context.transform.trans(315.0,20.0),
+            context.transform.trans(317.5,20.0),
             gl).unwrap();
 
-            text.draw(&("Gold: ".to_string()+&self.gold.to_string()),
+            text_gold.draw(&("Gold: ".to_string()+&self.gold.to_string()),
             &mut glyph_cache,
             &Default::default(),
-            context.transform.trans(315.0,40.0),
+            context.transform.trans(317.5,40.0),
             gl).unwrap();
 
             
@@ -181,7 +190,7 @@ impl App {
             text_announce.draw(&self.text,
             &mut glyph_cache,
             &Default::default(),
-            context.transform.trans(240.0-(self.text.len()*10) as f64,120.0),
+            context.transform.trans(240.0-(self.text.len()*10) as f64,125.0),
             gl).unwrap();
 
 
@@ -242,6 +251,7 @@ impl App {
         if self.health <= 0.0{
             self.gamestate = -1;
             self.health = 0.0;
+            self.text = "Game Over".to_string();
         };
 
         // Spawner
@@ -307,6 +317,8 @@ impl App {
             if !self.mouse_down && self.gamestate != -1{
                 for hbutton in &self.huds{
                     if self.mouse_pos[0]>hbutton.position[0] && self.mouse_pos[1]>hbutton.position[1] && self.mouse_pos[0]<hbutton.position[0]+hbutton.image.rectangle.unwrap()[2] && self.mouse_pos[1]<hbutton.position[1]+hbutton.image.rectangle.unwrap()[3]{
+                        
+                        // Pause (Shop = 0)
                         if hbutton.id == 1{
                             
                             if self.gamestate == 0{
