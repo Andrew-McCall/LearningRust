@@ -56,6 +56,7 @@ struct App {
     textures: [Texture; 4],
     images: [Image; 4],
     huds: [HudButton; 2],
+    text: String,//Option<text::Text>,
 
     gamestate: i8,
     health: f64,
@@ -107,6 +108,7 @@ impl App {
             arrows: Vec::new(),
             decals: Vec::new(),
             huds: hud, 
+            text: "Click To Start".to_string(),
             difficulty: difficulty,
             last_spawn:0.0,
             images:images,
@@ -125,7 +127,7 @@ impl App {
         let draw_state: DrawState = Default::default();
         let mut glyph_cache = GlyphCache::new("assets/FiraSans-Regular.ttf", (), TextureSettings::new()).unwrap();
         let text = text::Text::new_color([1.0, 1.0, 0.4, 1.0], 18);
-
+        let text_announce = text::Text::new_color([1.0, 1.0, 1.0, 1.0], 48);
 
         self.gl.draw(args.viewport(), |context, gl| {
             clear([0.0,0.4,0.0,1.0], gl);
@@ -173,6 +175,16 @@ impl App {
             &Default::default(),
             context.transform.trans(315.0,40.0),
             gl).unwrap();
+
+            
+
+            text_announce.draw(&self.text,
+            &mut glyph_cache,
+            &Default::default(),
+            context.transform.trans(240.0-(self.text.len()*10) as f64,120.0),
+            gl).unwrap();
+
+
 
         });
     }
@@ -292,12 +304,25 @@ impl App {
     fn input(&mut self, args: &ButtonArgs){
         if  Button::Mouse(MouseButton::Left) == args.button{
             self.mouse_down = (args.state) == ButtonState::Press;
-            if !self.mouse_down{
+            if !self.mouse_down && self.gamestate != -1{
                 for hbutton in &self.huds{
                     if self.mouse_pos[0]>hbutton.position[0] && self.mouse_pos[1]>hbutton.position[1] && self.mouse_pos[0]<hbutton.position[0]+hbutton.image.rectangle.unwrap()[2] && self.mouse_pos[1]<hbutton.position[1]+hbutton.image.rectangle.unwrap()[3]{
-                        self.gamestate = self.gamestate*-1;
+                        if hbutton.id == 1{
+                            
+                            if self.gamestate == 0{
+                                self.text = "".to_string();
+                                self.gamestate = 1;
+                            }else{
+                                self.text = "Pause!".to_string();
+                                self.gamestate = 0;
+                            }
+                            
+                        }
                     }
                 }
+            }else if self.gamestate == 2{
+                self.gamestate = 1;
+                self.text = "".to_string();
             }
         } 
     }
@@ -317,8 +342,8 @@ fn main() {
         .unwrap();
 
     let mut app = App::new(opengl, 50.0);
-    
-    app.gamestate = 1;
+
+    app.gamestate = 2;
 
     let mut events = Events::new(EventSettings::new());
     while let Some(event) = events.next(&mut window) {
@@ -338,6 +363,6 @@ fn main() {
         event.mouse_cursor(|pos| {
             app.mouse_pos = pos;
         });
-
+        
     }
 }
