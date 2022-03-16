@@ -56,7 +56,6 @@ struct App {
     textures: [Texture; 4],
     images: [Image; 4],
     huds: [HudButton; 2],
-    text: String,//Option<text::Text>,
 
     gamestate: i8,
     health: f64,
@@ -108,14 +107,13 @@ impl App {
             arrows: Vec::new(),
             decals: Vec::new(),
             huds: hud, 
-            text: "Click To Start".to_string(),
             difficulty: difficulty,
             last_spawn:0.0,
             images:images,
             textures:textures,
             cooldown:0.0,
-            gamestate: 0,
-            health: 100.0,
+            gamestate: 5,
+            health: 1.0,
             gold:0,
             score:0,
         };
@@ -127,20 +125,11 @@ impl App {
         let draw_state: DrawState = Default::default();
         let mut glyph_cache = GlyphCache::new("assets/FiraSans-Regular.ttf", (), TextureSettings::new()).unwrap();
         let text_gold = text::Text::new_color([1.0, 1.0, 0.4, 1.0], 18);
-        let text_score = text::Text::new_color([1.0, 1.0, 0.4, 1.0], 16);
-
-        let colo_r;
-        if self.gamestate == -1 {
-            colo_r = [0.6, 0.0, 0.0, 1.0];
-        }else{
-            colo_r = [1.0, 1.0, 1.0, 1.0];
-        }
+        let text_score = text::Text::new_color([1.0, 1.0, 0.85, 1.0], 16);
         
-        let text_announce = text::Text::new_color(colo_r, 48);
-
         self.gl.draw(args.viewport(), |context, gl| {
             clear([0.0,0.4,0.0,1.0], gl);
-            
+
             // Entities //
             for decal in &self.decals{
                 let transform = context.transform.trans(decal.position[0],decal.position[1]).rot_rad(decal.rotation).trans(-self.images[decal.texture].rectangle.unwrap()[2]/2.0,-self.images[decal.texture].rectangle.unwrap()[3]/2.);
@@ -185,13 +174,34 @@ impl App {
             context.transform.trans(317.5,40.0),
             gl).unwrap();
 
-            
+            match self.gamestate{
 
-            text_announce.draw(&self.text,
-            &mut glyph_cache,
-            &Default::default(),
-            context.transform.trans(240.0-(self.text.len()*10) as f64,125.0),
-            gl).unwrap();
+                -1 => { text::Text::new_color([0.9, 0.1, 0.1, 1.0], 48).draw(&("Game Over\n".to_string()+&self.score.to_string()), &mut glyph_cache,
+                &Default::default(),
+                context.transform.trans(240.0,40.0),
+                gl).unwrap(); } // -1 Death
+ 
+                0 => { text::Text::new_color([1.0, 1.0, 1.0, 1.0], 48).draw("Pause", &mut glyph_cache,
+                &Default::default(),
+                context.transform.trans(180.0,80.0),
+                gl).unwrap() } // 0 Pause
+
+                4 => { } // 4 Menu
+
+                5 => { text::Text::new_color([1.0, 1.0, 1.0, 1.0], 48).draw("Click To Start", &mut glyph_cache,
+                &Default::default(),
+                context.transform.trans(180.0,80.0),
+                gl).unwrap(); } // 5 Start
+
+                _ => {} // 1 = play
+
+             }
+
+            // text_announce.draw(&self.text,
+            // &mut glyph_cache,
+            // &Default::default(),
+            // context.transform.trans(240.0-(self.text.len()*10) as f64,125.0),
+            // gl).unwrap();
 
 
 
@@ -251,7 +261,6 @@ impl App {
         if self.health <= 0.0{
             self.gamestate = -1;
             self.health = 0.0;
-            self.text = "Game Over".to_string();
         };
 
         // Spawner
@@ -315,26 +324,34 @@ impl App {
         if  Button::Mouse(MouseButton::Left) == args.button{
             self.mouse_down = (args.state) == ButtonState::Press;
             if !self.mouse_down && self.gamestate != -1{
+
                 for hbutton in &self.huds{
                     if self.mouse_pos[0]>hbutton.position[0] && self.mouse_pos[1]>hbutton.position[1] && self.mouse_pos[0]<hbutton.position[0]+hbutton.image.rectangle.unwrap()[2] && self.mouse_pos[1]<hbutton.position[1]+hbutton.image.rectangle.unwrap()[3]{
                         
-                        // Pause (Shop = 0)
-                        if hbutton.id == 1{
-                            
-                            if self.gamestate == 0{
-                                self.text = "".to_string();
+                        if hbutton.id == 0{ // Shop
+
+                            if self.gamestate == 4{
                                 self.gamestate = 1;
                             }else{
-                                self.text = "Pause!".to_string();
+                                self.gamestate = 4;
+                            }
+                        }else if hbutton.id == 1{ // Pause
+                            
+                            if self.gamestate == 0{
+                                self.gamestate = 1;
+                            }else{
                                 self.gamestate = 0;
                             }
                             
                         }
+
+                        break;
+
                     }
                 }
-            }else if self.gamestate == 2{
+
+            }else if self.gamestate == 5{
                 self.gamestate = 1;
-                self.text = "".to_string();
             }
         } 
     }
@@ -354,8 +371,6 @@ fn main() {
         .unwrap();
 
     let mut app = App::new(opengl, 50.0);
-
-    app.gamestate = 2;
 
     let mut events = Events::new(EventSettings::new());
     while let Some(event) = events.next(&mut window) {
