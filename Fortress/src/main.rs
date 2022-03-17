@@ -221,9 +221,9 @@ impl App {
                 } 
 
                 // 5 Start
-                5 => { text::Text::new_color([1.0, 1.0, 1.0, 1.0], 48).draw("Click To Start", &mut glyph_cache,
+                5 => { text::Text::new_color([1.0, 1.0, 1.0, 1.0], 52).draw("Click To Start", &mut glyph_cache,
                 &Default::default(),
-                context.transform.trans(180.0,80.0),
+                context.transform.trans(100.0, 180.0),
                 gl).unwrap(); } 
 
                 _ => {} // 1 = play
