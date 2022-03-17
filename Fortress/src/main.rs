@@ -21,6 +21,7 @@ struct HudButton{
     image: Image,
     position: [f64; 2],
     id: i8,
+    active: bool,
 }
 
 struct Arrow{
@@ -55,11 +56,13 @@ struct App {
     last_spawn: f64,
     textures: [Texture; 4],
     images: [Image; 4],
-    huds: [HudButton; 2],
+    huds: [HudButton; 4],
 
     gamestate: i8,
     health: f64,
 
+    cooldown_speed:f64,
+    rotation_speed:f64,
     rotation: f64,
     cooldown: f64,
     gold: i32,
@@ -83,18 +86,34 @@ impl App {
             Image::new().rect(square(0.0, 0.0, 40.0))
         ];
 
-        let hud:[HudButton; 2] = [
+        let hud:[HudButton; 4] = [
             HudButton{
+                active: true,
                 image: Image::new().rect(square(0.0, 0.0, 40.0)),
                 texture:Texture::from_path(Path::new("./assets/Shop.png"), &TextureSettings::new()).expect("Could not load Shop."),
                 position:[395.0, 5.0],
                 id: 0,
             },
             HudButton{
+                active: true,
                 image: Image::new().rect(square(0.0, 0.0, 50.0)),
                 texture:Texture::from_path(Path::new("./assets/Pause.png"), &TextureSettings::new()).expect("Could not load Shop."),
                 position:[430.0, 2.0],
                 id: 1,
+            },
+            HudButton{
+                active: false,
+                image: Image::new().rect(square(0.0, 0.0, 80.0)),
+                texture:Texture::from_path(Path::new("./assets/firespeed.png"), &TextureSettings::new()).expect("Could not load Shop."),
+                position:[120.0, 160.0],
+                id: 2,
+            },
+            HudButton{
+                active: false,
+                image: Image::new().rect(square(0.0, 0.0, 80.0)),
+                texture:Texture::from_path(Path::new("./assets/turnUpgrade.png"), &TextureSettings::new()).expect("Could not load Shop."),
+                position:[240.0, 160.0],
+                id: 3,
             }
         ];
 
@@ -113,9 +132,11 @@ impl App {
             textures:textures,
             cooldown:0.0,
             gamestate: 5,
-            health: 1.0,
+            health: 100.0,
             gold:0,
             score:0,
+            cooldown_speed:0.75,
+            rotation_speed:0.75,
         };
 
     }
@@ -157,10 +178,6 @@ impl App {
             rectangle([0.6, 0.0, 0.0, 1.0], health_back, context.transform.trans(7.50, 10.0), gl);
             let health = rectangle::rectangle_by_corners(0.0, 0.0, 3.0*self.health, 30.0);
             rectangle([0.9, 0.0, 0.0, 1.0], health, context.transform.trans(7.50, 10.0), gl);
-
-            for hbutton in &self.huds{
-                hbutton.image.draw(&hbutton.texture, &draw_state, context.transform.trans(hbutton.position[0], hbutton.position[1]), gl)
-            }
             
             text_score.draw(&("Score: ".to_string()+&self.score.to_string()),
             &mut glyph_cache,
@@ -176,34 +193,48 @@ impl App {
 
             match self.gamestate{
 
+                 // -1 Death
                 -1 => { text::Text::new_color([0.9, 0.1, 0.1, 1.0], 48).draw(&("Game Over\n".to_string()+&self.score.to_string()), &mut glyph_cache,
                 &Default::default(),
                 context.transform.trans(240.0,40.0),
-                gl).unwrap(); } // -1 Death
+                gl).unwrap(); }
  
+                // 0 Pause
                 0 => { text::Text::new_color([1.0, 1.0, 1.0, 1.0], 48).draw("Pause", &mut glyph_cache,
                 &Default::default(),
-                context.transform.trans(180.0,80.0),
-                gl).unwrap() } // 0 Pause
+                context.transform.trans(180.0, 100.0),
+                gl).unwrap() } 
 
-                4 => { } // 4 Menu
+                // 4 Menu
+                4 => { 
+                let bg = rectangle::rectangle_by_corners(0.0, 0.0, 300.0, 170.0);
+                rectangle([0.25, 0.27, 0.25, 1.0], bg, context.transform.trans(70.0, 100.0), gl);
 
+                let bg2 = rectangle::rectangle_by_corners(0.0, 0.0, 260.0, 100.0);
+                rectangle([0.3, 0.31, 0.3, 1.0], bg2, context.transform.trans(90.0, 150.0), gl);
+
+                text::Text::new_color([0.9, 0.9, 0.2, 1.0], 32).draw("Shop", &mut glyph_cache,
+                &Default::default(),
+                context.transform.trans(185.0, 135.0),
+                gl).unwrap();
+
+                } 
+
+                // 5 Start
                 5 => { text::Text::new_color([1.0, 1.0, 1.0, 1.0], 48).draw("Click To Start", &mut glyph_cache,
                 &Default::default(),
                 context.transform.trans(180.0,80.0),
-                gl).unwrap(); } // 5 Start
+                gl).unwrap(); } 
 
                 _ => {} // 1 = play
 
              }
 
-            // text_announce.draw(&self.text,
-            // &mut glyph_cache,
-            // &Default::default(),
-            // context.transform.trans(240.0-(self.text.len()*10) as f64,125.0),
-            // gl).unwrap();
-
-
+             for hbutton in &self.huds{
+                if hbutton.active{
+                    hbutton.image.draw(&hbutton.texture, &draw_state, context.transform.trans(hbutton.position[0], hbutton.position[1]), gl)
+                }
+            }
 
         });
     }
@@ -237,7 +268,7 @@ impl App {
 
                         self.enemies[y].health = 0;
 
-                        self.difficulty += 10.0;
+                        self.difficulty += 5.0+self.difficulty/100.0;
 
                         self.arrows[x].position[0] = -1000.0;
                     }
@@ -254,7 +285,7 @@ impl App {
             if self.enemies[x].position[0] < 480.0{
                 self.enemies[x].position[0] += self.enemies[x].speed * args.dt;
             }else{
-                self.health -= 1.0 * args.dt;
+                self.health -= 0.01 * args.dt * self.difficulty;
             }
         }
 
@@ -282,7 +313,7 @@ impl App {
         }
 
         // Crossbow Cooldown
-        self.cooldown -= args.dt*2.0;
+        self.cooldown -= args.dt*self.cooldown_speed;
 
         if self.cooldown < 0.0{
             self.cooldown = 0.0;
@@ -312,9 +343,9 @@ impl App {
         let real_rotation = (480.0-self.mouse_pos[0]).atan2(self.mouse_pos[1]-205.0);
         if (self.rotation - real_rotation).abs()> args.dt * 1.5{
             if real_rotation > self.rotation{
-                self.rotation += args.dt * 1.5;
+                self.rotation += args.dt * self.rotation_speed;
             }else{
-                self.rotation -= args.dt * 1.5;
+                self.rotation -= args.dt * self.rotation_speed;
             }
         }
         
@@ -326,27 +357,42 @@ impl App {
             if !self.mouse_down && self.gamestate != -1{
 
                 for hbutton in &self.huds{
-                    if self.mouse_pos[0]>hbutton.position[0] && self.mouse_pos[1]>hbutton.position[1] && self.mouse_pos[0]<hbutton.position[0]+hbutton.image.rectangle.unwrap()[2] && self.mouse_pos[1]<hbutton.position[1]+hbutton.image.rectangle.unwrap()[3]{
+                    if hbutton.active{
+                        if self.mouse_pos[0]>hbutton.position[0] && self.mouse_pos[1]>hbutton.position[1] && self.mouse_pos[0]<hbutton.position[0]+hbutton.image.rectangle.unwrap()[2] && self.mouse_pos[1]<hbutton.position[1]+hbutton.image.rectangle.unwrap()[3]{
                         
-                        if hbutton.id == 0{ // Shop
-
-                            if self.gamestate == 4{
-                                self.gamestate = 1;
-                            }else{
-                                self.gamestate = 4;
+                            if hbutton.id == 0{ // Shop
+                                if self.gamestate == 4{
+                                    self.gamestate = 1;
+                                }else if self.gamestate == 1{
+                                    self.gamestate = 4;
+                                } else{
+                                    return;
+                                }
+                                self.huds[2].active = !self.huds[2].active;
+                                self.huds[3].active = !self.huds[3].active;
+                            }else if hbutton.id == 1{ // Pause
+                                
+                                if self.gamestate == 0{
+                                    self.gamestate = 1;
+                                }else if self.gamestate == 1{
+                                    self.gamestate = 0;
+                                }
+                                
+                            }else if hbutton.id == 2{
+                                if self.gold >= 25{
+                                    self.cooldown_speed += 0.5;
+                                    self.gold -= 25;
+                                }
+                            }else if hbutton.id == 3{
+                                if self.gold >= 25{
+                                    self.rotation_speed += 0.5;
+                                    self.gold -= 25;
+                                }
                             }
-                        }else if hbutton.id == 1{ // Pause
-                            
-                            if self.gamestate == 0{
-                                self.gamestate = 1;
-                            }else{
-                                self.gamestate = 0;
-                            }
-                            
+    
+                            break;
+    
                         }
-
-                        break;
-
                     }
                 }
 
