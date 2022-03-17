@@ -3,24 +3,26 @@
 I wanted to learn rust; I'm a massive nerd.
 Here are some of my first projects.
 
-# Projects
-
-## Conway's Game Of Life
-### Description
-My first program in rust.
-A simple simulation created by John Conway. Pixels are either live or dead; Depending on their neighbour count they will spawn, survive, or die.
+*Everything is a work in progress - the enjoyment was programming not polish graphics although that is not out of the picture*
 
 Key Libs:
 - Piston_Window
 - Rand
-- *Time & Thread was used also*
+- Opengl_graphics
+- Standard Time & Thread were used also
+
+# Projects
+
+## Fortress
+### Description
+A tower defence game, Enemies spawn walking left to right at various speeds. Shoot them to not let them reach and damage you. 
+Based on piston using opengl_graphics. Included Text and texture rendering and mouse and keyboard inputs.
 
 ### Future Improvements
-May add editor so no random start
-Refactor Code to be pretty after some more rust experience. 
-
-### Notes
-Gif of my game: https://imgur.com/a/Xxhw7ss
+- Better Textures
+- Resizeable screen (stuck to 480, 360)
+- Animations
+- Sound Effects
 
 ## Snake
 ### Description
@@ -32,7 +34,17 @@ Classic video game. The snake seeks apples, growing with each and will die/lose 
 - speed on size
 - Score / Win Condition
 
-## Fortress (Beta)
+
+## Conway's Game Of Life
 ### Description
-Still a work in progress. A tower defence game, Enemies spawn walking left to right at various speeds. Shoot them to not let them reach and damage you. 
-Based on pistion using opengl for graphics. Included Text and image rendering and mouse and keyboard inputs.
+My first program in rust.
+A simple simulation created by John Conway. Pixels are either live or dead; Depending on their neighbour count they will spawn, survive, or die.
+
+### Future Improvements
+May add editor so no random start
+Refactor Code to be pretty after some more rust experience. 
+
+# Notes
+Gif of GOL: ![Conway's Game Of Life](https://i.imgur.com/kcvTdes.mp4)
+Snake: ![Snake](https://imgur.com/a/suHK1r1)
+Fortress: ![Fortress](https://i.imgur.com/SIPmyRM.png)
