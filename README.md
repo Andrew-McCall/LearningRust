@@ -45,6 +45,6 @@ May add editor so no random start
 Refactor Code to be pretty after some more rust experience. 
 
 # Notes
-Gif of GOL: ![Conway's Game Of Life](https://i.imgur.com/kcvTdes.mp4)
-Snake: ![Snake](https://imgur.com/a/suHK1r1)
+Gif of Conway's Game Of Life: https://i.imgur.com/kcvTdes.mp4
+Snake: ![Snake](https://i.imgur.com/6S2vtOf.png)
 Fortress: ![Fortress](https://i.imgur.com/SIPmyRM.png)
