@@ -3,7 +3,9 @@
 I wanted to learn rust; I'm a massive nerd.
 Here are some of my first projects.
 
-*Everything is a work in progress - the enjoyment was programming not polish graphics although that is not out of the picture*
+> Note: This project is complete, There likely wont be any updates :/
+
+*Everything is a work in progress - the enjoyment was programming not polished graphics.*
 
 Key Libs:
 - Piston_Window
